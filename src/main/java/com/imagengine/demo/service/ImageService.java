@@ -6,8 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+
+import com.imagengine.demo.bean.Compare;
+import com.imagengine.demo.bean.Image;
 
 import oracle.jdbc.OraclePreparedStatement;
 import oracle.jdbc.OracleResultSet;
@@ -18,6 +20,8 @@ import	oracle.ord.im.OrdImageSignature; // Pour la classe OrdImageSignature
 public class ImageService {
     private OrdImageSignature sign;
     private OracleResultSet rset;
+    
+    
     public void insertNewImage()
     {
         String sql ="INSERT INTO IMAGE (id) values(image_seq.nextval)";
@@ -33,6 +37,8 @@ public class ImageService {
             System.out.println("Insertion Failed");
         }
     }
+    
+    //renvoi le derinier id inserer
     public int getLastId()
     {
         
@@ -56,7 +62,8 @@ public class ImageService {
         return id_Max;
     }
     
-    public void saveImage(String imagePath) throws IOException {
+    //permet d'enregistrer une image
+    public void saveImage(Image imagePath) throws IOException {
     	this.insertNewImage();
     	int id=this.getLastId();
     	System.out.println("id save image ====> "+id);
@@ -87,7 +94,7 @@ public class ImageService {
                 if(this.rset.next()) {
                 	OrdImage image = (OrdImage) this.rset.getORAData("image", OrdImage.getORADataFactory());
                     OrdImageSignature sign = (OrdImageSignature) this.rset.getORAData("signature", OrdImageSignature.getORADataFactory());
-                    image.loadDataFromFile(imagePath);
+                    image.loadDataFromFile(imagePath.getPath());
                     image.setProperties();
                     System.out.println("set proprietie");
                     if(image.checkProperties()){
@@ -116,15 +123,11 @@ public class ImageService {
         }
     	
     	
-    	
-    	
-   	
-    	
     }
 
     
 
-   
+   /*
     public OrdImage getImage(int id){
     	System.out.println("-----------get image------------");
         try {
@@ -148,15 +151,16 @@ public class ImageService {
         }
         return null;
         
-    }
+    }*/
     
-    
-    public List<OrdImage> isSimilar(String path){
-    	List<OrdImage> imagesSimilar=new ArrayList<OrdImage>();
+    //les images qui sont similaire a une image
+    public List<Image>  isSimilar(Compare path){
+    	List<Image> imagesSimilar=new ArrayList<Image>();
     	float seuil = 35;
-    	String commande ="color=1 texture=1 shape=1";
     	try {
-    		this.saveImage(path);
+    		Image im1=new Image();
+    		im1.setPath(path.getPath1());
+    		this.saveImage(im1);
     		int id_image1=this.getLastId();
     		String sql1 = "SELECT signature FROM image WHERE id="+id_image1;
     		OraclePreparedStatement statement1 = (OraclePreparedStatement) Connect.getConnection().prepareStatement(sql1);
@@ -173,30 +177,29 @@ public class ImageService {
             //fin delete
             
             //get all images
-            String sql2 = "SELECT signature,image FROM image";
+            String sql2 = "SELECT signature,image,id FROM image";
     		OraclePreparedStatement statement2 = (OraclePreparedStatement) Connect.getConnection().prepareStatement(sql2);
             this.rset=(OracleResultSet) statement2.executeQuery();
             while(this.rset.next()) {
             	OrdImage image = (OrdImage) this.rset.getORAData("image", OrdImage.getORADataFactory());
                 OrdImageSignature signature = (OrdImageSignature) this.rset.getORAData("signature", OrdImageSignature.getORADataFactory());
                 
-                if(OrdImageSignature.isSimilar(signature,sign_Image,commande,seuil)==1) {
-                	imagesSimilar.add(image);
+                if(OrdImageSignature.isSimilar(signature,sign_Image,path.getCommande(),seuil)==1) {
+                	Image im=new Image(this.rset.getInt(3),"hello","images/"+this.rset.getInt(3)+".png");
+                	imagesSimilar.add(im);
                 }
             }
             
-    		
     	}catch(Exception e) {
     		System.out.println(e);
     	}
-    	
     	return imagesSimilar;
     }
-    
+    /*
     public void ImageCreation(List<OrdImage> images) {
   
     		images.forEach(i->{
-        		 try {
+        		 try {        			 
 					i.getDataInFile("E:\\IRISI\\result\\resulats\\image"+System.currentTimeMillis()+".png");
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
@@ -208,12 +211,51 @@ public class ImageService {
         	});
     	
     }
+    */
     
-    
-    public void compareBetweenImages(String path1,String path2) {
-    	System.out.println("compare between images ");
+    //tous les images
+    public List<Image> getAllImages(){
+    	List<Image> images=new ArrayList<Image>();
+    	String sql="select image,id from image";
     	try {
-    		this.saveImage(path1);
+    		OraclePreparedStatement statement = (OraclePreparedStatement) Connect.getConnection().prepareStatement(sql);
+            this.rset=(OracleResultSet) statement.executeQuery();
+            while(this.rset.next()) {
+            	int id=this.rset.getInt(2);
+            	OrdImage image = (OrdImage) this.rset.getORAData("image", OrdImage.getORADataFactory());
+            	image.getDataInFile("E:\\IRISI\\result\\image"+id+".png");
+            	Image im=new Image(id,"test","images/"+id+".png");
+            	images.add(im);
+            }
+    	}catch(Exception e) {
+    		System.out.println(e);
+    	}
+    	
+    	return images;
+    }
+    
+    //supprimer une images
+    public void deleteImage(int id) {
+    	try {
+    		String query = "delete from image where id = "+id;
+            PreparedStatement preparedStmt = Connect.getConnection().prepareStatement(query);
+            preparedStmt.execute();
+            //fin delete
+            preparedStmt.close();
+    	}catch(Exception e) {
+    		System.out.println(e);
+    	}
+    	 
+    }
+    
+    //la comparaison entre 2 images
+    public float compareBetweenImages(Compare c) {
+    	System.out.println("compare between images ");
+    	float score=0;
+    	try {
+    		Image im1=new Image();
+    		im1.setPath(c.getPath1());
+    		this.saveImage(im1);
     		int id_image1=this.getLastId();
     		String sql1 = "SELECT signature FROM image WHERE id="+id_image1;
     		OraclePreparedStatement statement1 = (OraclePreparedStatement) Connect.getConnection().prepareStatement(sql1);
@@ -229,8 +271,9 @@ public class ImageService {
             preparedStmt.execute();
             //fin delete
             preparedStmt.close();
-            
-    		this.saveImage(path2);
+            Image im2=new Image();
+    		im2.setPath(c.getPath2());
+    		this.saveImage(im2);
     		int id_image2=this.getLastId();
     		String sql2 = "SELECT signature FROM image WHERE id="+id_image2;
     		OraclePreparedStatement statement2 = (OraclePreparedStatement) Connect.getConnection().prepareStatement(sql2);
@@ -251,7 +294,7 @@ public class ImageService {
             System.out.println("debut de comparaison");
             
             String commande ="color=1 texture=0 shape=0 location=0";
-            float score = OrdImageSignature.evaluateScore(sign, sign1,commande);
+            score = OrdImageSignature.evaluateScore(sign, sign1,c.getCommande());
             
             
             System.out.println("fin de comparaison");
@@ -263,6 +306,7 @@ public class ImageService {
     		System.out.println(e);
     	}
    
+    	return score;
         
     }
     
