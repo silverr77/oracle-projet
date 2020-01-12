@@ -19,9 +19,9 @@ public class Connect {
     
     private static Connect instance = new Connect();
     private static Connection cnx=null;
-    public static final String URL = "jdbc:oracle:thin:@192.168.100.197:1521:FST2";
-    public static final String USER = "system";
-    public static final String PASSWORD = "system";
+    public static final String URL = "jdbc:oracle:thin:@localhost:1521:orcl";
+    public static final String USER = "SYSTEM";
+    public static final String PASSWORD = "SYSTEM";
     public static final String DRIVER_CLASS = "oracle.jdbc.driver.OracleDriver"; 
     
     private Connect() {

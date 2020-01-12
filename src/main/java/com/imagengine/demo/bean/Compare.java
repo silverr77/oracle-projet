@@ -9,6 +9,9 @@ public class Compare {
 	
 	
 	
+	public Compare() {
+		super();
+	}
 	public Compare(String path1, String path2, String commande) {
 		super();
 		this.path1 = path1;

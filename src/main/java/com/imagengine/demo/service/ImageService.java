@@ -63,7 +63,7 @@ public class ImageService {
     }
     
     //permet d'enregistrer une image
-    public void saveImage(Image imagePath) throws IOException {
+    public void saveImage(Image imagePath) throws IOException {    	
     	this.insertNewImage();
     	int id=this.getLastId();
     	System.out.println("id save image ====> "+id);
@@ -162,6 +162,7 @@ public class ImageService {
     		im1.setPath(path.getPath1());
     		this.saveImage(im1);
     		int id_image1=this.getLastId();
+    		System.out.println(id_image1);
     		String sql1 = "SELECT signature FROM image WHERE id="+id_image1;
     		OraclePreparedStatement statement1 = (OraclePreparedStatement) Connect.getConnection().prepareStatement(sql1);
             this.rset=(OracleResultSet) statement1.executeQuery();
@@ -169,13 +170,13 @@ public class ImageService {
             if(this.rset.next()) {
             	sign_Image= (OrdImageSignature) this.rset.getORAData("signature", OrdImageSignature.getORADataFactory());
             }
-            
+            System.out.println("signature ==== "+sign_Image);
             //delete image1 from table
             String query = "delete from image where id = "+id_image1;
             PreparedStatement preparedStmt = Connect.getConnection().prepareStatement(query);
             preparedStmt.execute();
             //fin delete
-            
+            System.out.println("fin delete");
             //get all images
             String sql2 = "SELECT signature,image,id FROM image";
     		OraclePreparedStatement statement2 = (OraclePreparedStatement) Connect.getConnection().prepareStatement(sql2);
@@ -183,11 +184,14 @@ public class ImageService {
             while(this.rset.next()) {
             	OrdImage image = (OrdImage) this.rset.getORAData("image", OrdImage.getORADataFactory());
                 OrdImageSignature signature = (OrdImageSignature) this.rset.getORAData("signature", OrdImageSignature.getORADataFactory());
-                
-                if(OrdImageSignature.isSimilar(signature,sign_Image,path.getCommande(),seuil)==1) {
-                	Image im=new Image(this.rset.getInt(3),"hello","images/"+this.rset.getInt(3)+".png");
-                	imagesSimilar.add(im);
+                if(signature!=null) {
+                	if(OrdImageSignature.isSimilar(signature,sign_Image,path.getCommande(),seuil)==1) {
+                    	image.getDataInFile("C:\\Users\\18\\Desktop\\Nouveau dossier\\images-front\\ImageFront\\src\\assets\\images\\"+this.rset.getInt(3)+".png");
+                    	Image im=new Image(this.rset.getInt(3),"hello","assets/images/"+this.rset.getInt(3)+".png");
+                    	imagesSimilar.add(im);
+                    }
                 }
+                
             }
             
     	}catch(Exception e) {
@@ -223,8 +227,8 @@ public class ImageService {
             while(this.rset.next()) {
             	int id=this.rset.getInt(2);
             	OrdImage image = (OrdImage) this.rset.getORAData("image", OrdImage.getORADataFactory());
-            	image.getDataInFile("E:\\IRISI\\result\\image"+id+".png");
-            	Image im=new Image(id,"test","images/"+id+".png");
+            	image.getDataInFile("C:\\Users\\18\\Desktop\\Nouveau dossier\\images-front\\ImageFront\\src\\assets\\images\\"+id+".png");
+            	Image im=new Image(id,"test","assets/images/"+id+".png");
             	images.add(im);
             }
     	}catch(Exception e) {
